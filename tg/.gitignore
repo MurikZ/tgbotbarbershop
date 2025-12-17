@@ -1,0 +1,12 @@
+# Создай .gitignore
+@"
+.env
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+"@ | Out-File -FilePath .gitignore -Encoding UTF8

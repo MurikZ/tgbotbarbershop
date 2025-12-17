@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import random
 from datetime import datetime
 from aiogram import Bot, Dispatcher, F
@@ -8,8 +9,8 @@ from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, LabeledP
 from aiogram.filters import CommandStart, Command
 from aiogram.enums import ParseMode
 
-API_TOKEN = "7789844644:AAEf729KRj_IYirL_hJE4GTNR36oC1Z-mpM"  # Замени!
-PAYMENT_PROVIDER_TOKEN = "1744374395:TEST:2ec4514cd02a714cf4e1"
+API_TOKEN = os.getenv("BOT_TOKEN") # Замени!
+PAYMENT_PROVIDER_TOKEN = os.getenv("PAYMENT_TOKEN")
 
 logging.basicConfig(level=logging.INFO)
 
