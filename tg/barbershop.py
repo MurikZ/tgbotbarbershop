@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import random
+from aiohttp import web
 from datetime import datetime
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, LabeledPrice, InlineKeyboardMarkup, \
@@ -532,23 +533,49 @@ async def set_bot_commands():
     await bot.set_my_commands(commands)
 
 
+# ========== ЗАПУСК БОТА И HTTP СЕРВЕРА ==========
+async def start_http_server():
+    """Запускаем HTTP сервер для Render"""
+    app = web.Application()
+
+    async def handle(request):
+        return web.Response(text="🤖 BarberKing Bot is running!\nHost: Render.com")
+
+    app.router.add_get('/', handle)
+    app.router.add_get('/health', lambda r: web.Response(text='OK'))
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+
+    # Получаем порт из переменной окружения Render
+    port = int(os.getenv('PORT', 8080))
+    site = web.TCPSite(runner, '0.0.0.0', port)
+
+    print(f"🌐 HTTP сервер запущен на порту {port}")
+    await site.start()
+
+    # Оставляем сервер работать вечно
+    await asyncio.Event().wait()
+
+
 async def main():
-    """Основная функция"""
+    """Основная функция запуска всего"""
     await set_bot_commands()
 
     print("=" * 50)
     print("🤖 BARBERKING BOT ЗАПУЩЕН!")
     print("=" * 50)
-    print("📍 Адрес: ул. Мужская, 13")
-    print("📞 Телефон: +7 (999) 123-45-67")
-    print("💳 Для теста: карта 4242 4242 4242 4242")
-    print("=" * 50)
 
+    # Запускаем HTTP сервер в фоновой задаче
+    http_task = asyncio.create_task(start_http_server())
+
+    # Ждем немного чтобы сервер точно запустился
+    await asyncio.sleep(2)
+
+    # Запускаем бота
+    print("🚀 Запускаю бота...")
     await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\n🛑 Бот остановлен")
+    asyncio.run(main())
