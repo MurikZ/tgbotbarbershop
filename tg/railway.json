@@ -4,6 +4,6 @@
     "builder": "RAILPACK"
   },
   "deploy": {
-    "startCommand": "python barbershop.py"
+    "startCommand": "python tg/barbershop.py"
   }
 }
