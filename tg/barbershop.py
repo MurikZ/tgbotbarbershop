@@ -534,48 +534,18 @@ async def set_bot_commands():
 
 
 # ========== ЗАПУСК БОТА И HTTP СЕРВЕРА ==========
-async def start_http_server():
-    """Запускаем HTTP сервер для Render"""
+async def on_startup(app):
+    await bot.delete_webhook(drop_pending_updates=True)
+    asyncio.create_task(dp.start_polling(bot))
+
+async def handle(request):
+    return web.Response(text="OK")
+
+def run():
     app = web.Application()
-
-    async def handle(request):
-        return web.Response(text="🤖 BarberKing Bot is running!\nHost: Render.com")
-
-    app.router.add_get('/', handle)
-    app.router.add_get('/health', lambda r: web.Response(text='OK'))
-
-    runner = web.AppRunner(app)
-    await runner.setup()
-
-    # Получаем порт из переменной окружения Render
-    port = int(os.getenv('PORT', 8080))
-    site = web.TCPSite(runner, '0.0.0.0', port)
-
-    print(f"🌐 HTTP сервер запущен на порту {port}")
-    await site.start()
-
-    # Оставляем сервер работать вечно
-    await asyncio.Event().wait()
-
-
-async def main():
-    """Основная функция запуска всего"""
-    await set_bot_commands()
-
-    print("=" * 50)
-    print("🤖 BARBERKING BOT ЗАПУЩЕН!")
-    print("=" * 50)
-
-    # Запускаем HTTP сервер в фоновой задаче
-    http_task = asyncio.create_task(start_http_server())
-
-    # Ждем немного чтобы сервер точно запустился
-    await asyncio.sleep(2)
-
-    # Запускаем бота
-    print("🚀 Запускаю бота...")
-    await dp.start_polling(bot)
-
+    app.router.add_get("/", handle)
+    app.on_startup.append(on_startup)
+    web.run_app(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    run()
