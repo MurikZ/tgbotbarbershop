@@ -6,9 +6,10 @@ from aiohttp import web
 from datetime import datetime
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, LabeledPrice, InlineKeyboardMarkup, \
-    InlineKeyboardButton, BotCommand, PreCheckoutQuery
+    InlineKeyboardButton, BotCommand, PreCheckoutQuery, Update
 from aiogram.filters import CommandStart, Command
 from aiogram.enums import ParseMode
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 
 API_TOKEN = os.getenv("BOT_TOKEN") # Замени!
 PAYMENT_PROVIDER_TOKEN = os.getenv("PAYMENT_TOKEN")
@@ -533,19 +534,35 @@ async def set_bot_commands():
     await bot.set_my_commands(commands)
 
 
-# ========== ЗАПУСК БОТА И HTTP СЕРВЕРА ==========
-async def on_startup(app):
-    await bot.delete_webhook(drop_pending_updates=True)
-    asyncio.create_task(dp.start_polling(bot))
+WEBHOOK_PATH = f"/{API_TOKEN}"
 
-async def handle(request):
-    return web.Response(text="OK")
+async def on_startup(app):
+    await set_bot_commands()
+
+    webhook_url = f"{os.getenv('RENDER_EXTERNAL_URL')}{WEBHOOK_PATH}"
+    await bot.set_webhook(webhook_url, drop_pending_updates=True)
+    logging.info(f"Webhook установлен: {webhook_url}")
+
+async def on_shutdown(app):
+    await bot.delete_webhook()
+    await bot.session.close()
 
 def run():
     app = web.Application()
-    app.router.add_get("/", handle)
-    app.on_startup.append(on_startup)
-    web.run_app(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
 
+    SimpleRequestHandler(
+        dispatcher=dp,
+        bot=bot,
+    ).register(app, path=WEBHOOK_PATH)
+
+    app.router.add_get("/", lambda request: web.Response(text="Bot is running"))
+
+    app.on_startup.append(on_startup)
+    app.on_shutdown.append(on_shutdown)
+
+    setup_application(app, dp, bot)
+
+    port = int(os.getenv("PORT", 8000))
+    web.run_app(app, host="0.0.0.0", port=port)
 if __name__ == "__main__":
     run()
