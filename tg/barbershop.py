@@ -560,7 +560,7 @@ def run():
     app.on_startup.append(on_startup)
     app.on_shutdown.append(on_shutdown)
 
-    setup_application(app, dp, bot)
+    setup_application(app, dp)
 
     port = int(os.getenv("PORT", 8000))
     web.run_app(app, host="0.0.0.0", port=port)
