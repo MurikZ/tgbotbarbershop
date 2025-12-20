@@ -11,8 +11,9 @@ from aiogram.filters import CommandStart, Command
 from aiogram.enums import ParseMode
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 
-API_TOKEN = os.getenv("BOT_TOKEN") # Замени!
+API_TOKEN = os.getenv("BOT_TOKEN")
 PAYMENT_PROVIDER_TOKEN = os.getenv("PAYMENT_TOKEN")
+ADMIN_ID = '6246437264'
 
 logging.basicConfig(level=logging.INFO)
 
@@ -166,7 +167,14 @@ async def show_score(message: Message):
         parse_mode=ParseMode.MARKDOWN
     )
 
-
+@dp.message(Command("all_users"))
+async def all_users(message:Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    text = "Пользователи\n"
+    for uid in user_data:
+        text += f"- {uid}\n"
+    await message.answer(text)
 # ========== ПРОЦЕСС ЗАПИСИ (ШАГ 1: УСЛУГА) ==========
 @dp.message(F.text.in_(list(PRICES.keys())))
 async def choose_service(message: Message):
@@ -460,31 +468,40 @@ async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery):
 @dp.message(F.successful_payment)
 async def successful_payment(message: Message):
     """Успешная оплата"""
+
     user_id = message.from_user.id
 
     if user_id in user_data and user_data[user_id].get("step") == "confirmation":
         data = user_data[user_id]
 
+        # 1️⃣ СООБЩЕНИЕ ПОЛЬЗОВАТЕЛЮ
         await message.answer(
-            f"🎉 *ОПЛАТА ПРИНЯТА!*\n\n"
-            f"✅ *Ты записан в BarberKing!*\n\n"
-            f"📋 *Детали:*\n"
-            f"• 👤 Имя: {data['name']}\n"
-            f"• ✂️ Услуга: {data['service']}\n"
-            f"• ⏰ Время: {data['time']}\n"
-            f"• 💰 Предоплата: {PRICES[data['service']] // 200}₽\n\n"
-            f"📍 *Адрес:* ул. Мужская, 13\n"
-            f"📞 *Телефон:* +7 (999) 123-45-67\n\n"
-            f"⚠️ *Приходи за 5 минут до записи!*\n\n"
-            f"🎮 *Пока ждешь - поиграй в игры!*",
+            "🎉 *ОПЛАТА ПРИНЯТА!*\n\n"
+            "✅ *Ты записан в BarberKing!*\n\n"
+            "📍 Адрес: ул. Мужская, 13\n"
+            "📞 Телефон: +7 (999) 123-45-67\n\n"
+            "⚠️ Приходи за 5 минут до записи",
             reply_markup=main_kb,
             parse_mode=ParseMode.MARKDOWN
         )
 
-        # Дарим бонус за оплату
+        # 2️⃣ СООБЩЕНИЕ АДМИНУ (ВОТ ЗДЕСЬ)
+        await bot.send_message(
+            ADMIN_ID,
+            f"📢 *Новая оплата!*\n\n"
+            f"👤 Имя: {data['name']}\n"
+            f"✂️ Услуга: {data['service']}\n"
+            f"⏰ Время: {data['time']}\n"
+            f"💰 Предоплата: {PRICES[data['service']] // 200}₽\n"
+            f"🆔 user_id: {user_id}",
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+        # 3️⃣ БОНУС
         user_scores[user_id] = user_scores.get(user_id, 0) + 25
 
-        user_data.pop(user_id, None)  # Очищаем данные
+        # 4️⃣ ОЧИСТКА ДАННЫХ
+        user_data.pop(user_id, None)
 
     else:
         await message.answer(
@@ -492,7 +509,6 @@ async def successful_payment(message: Message):
             "Свяжись с администратором для уточнения деталей записи.",
             reply_markup=main_kb
         )
-
 
 # ========== ОБРАБОТКА ЛЮБЫХ ДРУГИХ СООБЩЕНИЙ ==========
 @dp.message()
