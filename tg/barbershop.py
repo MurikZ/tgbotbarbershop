@@ -13,7 +13,7 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 
 API_TOKEN = os.getenv("BOT_TOKEN")
 PAYMENT_PROVIDER_TOKEN = os.getenv("PAYMENT_TOKEN")
-ADMIN_ID = '6246437264'
+ADMIN_ID = 6246437264
 
 logging.basicConfig(level=logging.INFO)
 
